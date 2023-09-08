@@ -6,18 +6,19 @@ import { activePhoto, photos } from '../utilities/filesystem';
 
 const mapEl = ref<null | HTMLElement>(null);
 let map;
+let n = 0;
 
-function addPhotos(entries: typeof photos) {
+function addPhotos(entries: (typeof photos[0] & { __mapMarker: any })[]) {
 	entries.forEach((photo) => {
-		if (photo.gps?.latitude == null) return;
+		if (photo.gps?.latitude == null || photo.__mapMarker) return;
 
-		const icon =	leaflet.divIcon({
+		const icon = leaflet.divIcon({
 			className: 'photo-map-icon',
 			iconSize: 48,
 			html: `<img src="${photo.thumbUrl}" alt="">`,
 		})
 
-		leaflet
+		photo.__mapMarker = leaflet
 			.marker([photo.gps.latitude, photo.gps.longitude], { icon })
 			.addTo(map)
 			.on('click', () => activePhoto.value = photo)
@@ -36,6 +37,7 @@ watch(mapEl, (el) => {
 			.map(el, {
 				center: [59.9, 10.7],
 				zoom: 13,
+				preferCanvas: true,
 			});
 
 		leaflet
@@ -49,7 +51,7 @@ watch(mapEl, (el) => {
 </script>
 
 <template>
-	<div style="width: 100%; height: 100%;" :ref="(el) => mapEl = (el as HTMLElement)"></div>
+	<div style="width: 100%; height: 100%; contain: strict;" :ref="(el) => mapEl = (el as HTMLElement)"></div>
 </template>
 
 <style>
@@ -59,6 +61,8 @@ watch(mapEl, (el) => {
 		padding: 3px;
 		display: grid;
 		outline: 1px solid lightgray;
+		contain-intrinsic-size: 48px 48px;
+		contain: strict;
 	}
 
 	.photo-map-icon img {

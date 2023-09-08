@@ -1,16 +1,24 @@
 <script setup lang="ts">
+import { ref, unref, watch } from 'vue';
 import LeafletMap from './components/LeafletMap.vue'
 import { open, photos, activePhoto } from './utilities/filesystem'
 
+const activePhotoUrl = ref<string | null>(null);
+
+watch(activePhoto, (photo) => {
+  if (activePhotoUrl.value != null) URL.revokeObjectURL(activePhotoUrl.value)
+  if (photo?.file != null) activePhotoUrl.value = URL.createObjectURL(photo.file)
+})
+
 function next() {
-  const index = photos.findIndex((photo) => photo === activePhoto.value);
+  const index = photos.findIndex((photo) => photo.file === activePhoto.value?.file);
   activePhoto.value = (index + 1 >= photos.length)
     ? photos[0]
     : photos[index + 1]
 }
 
 function prev() {
-  const index = photos.findIndex((photo) => photo === activePhoto.value);
+  const index = photos.findIndex((photo) => photo.file === activePhoto.value?.file);
   activePhoto.value = (index === 0)
     ? photos[photos.length - 1]
     : photos[index - 1]
@@ -21,8 +29,9 @@ function prev() {
   <div class="app">
     <nav class="app__nav">
       <button v-on:click="open()" class="button">Open directory</button>
+      <div>{{ photos.length }} files</div>
       <ul style="display: contents">
-        <li v-for="photo in photos" :key="photo" class="file-list-item">
+        <li v-for="photo in photos" :key="photo" class="file-list-item" v-on:click="activePhoto = photo">
           <img class="thumb" :src="photo.thumbUrl" alt="">
           <span class="overflow-text">{{ photo.file.name }}</span>
           <span class="gray">{{ photo.gps ? '' : '(no gps)' }}</span>
@@ -31,7 +40,8 @@ function prev() {
     </nav>
     <LeafletMap class="app__map" />
     <div class="app__gallery" v-if="activePhoto != null">
-      <img class="full-photo" :src="activePhoto.url" alt="">
+      <img class="full-photo" v-if="activePhotoUrl != null" :src="activePhotoUrl" alt="">
+      <div class="full-photo" v-else></div>
       <div class="gallery-nav">
         <button class="button" v-on:click="prev()">Prev</button>
         <span class="overflow-text">{{ activePhoto.file.name }}</span>
@@ -95,6 +105,7 @@ function prev() {
   grid-template-columns: max-content minmax(0, 1fr) max-content;
   gap: 1rem;
   align-items: center;
+  contain-intrinsic-size: 0 0;
 }
 
 .gray {
